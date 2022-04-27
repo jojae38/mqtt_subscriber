@@ -1,0 +1,6 @@
+<launch>
+  <node name="mqtt_subscriber" pkg="mqtt_subscriber" type="mqtt_subscriber" output="screen">
+    <param name="Ros_rate" value="10" />
+  </node>
+  <!-- <node name="settings_script" pkg="serialIMU" type="initialSettings.sh" output="screen"/> -->
+</launch>
