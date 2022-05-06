@@ -1,6 +1,8 @@
 <launch>
   <node name="mqtt_subscriber" pkg="mqtt_subscriber" type="mqtt_subscriber" output="screen">
-    <param name="Ros_rate" value="10" />
+    <param name="Host" value="192.168.50.220" />
+    <param name="Port" value="1883" />
+    <param name="AMR ID" value="001" />
   </node>
   <!-- <node name="settings_script" pkg="serialIMU" type="initialSettings.sh" output="screen"/> -->
 </launch>
