@@ -110,6 +110,13 @@ const char* GD[]={
     "FWVersion",
     "ErrorCode"
 };
+const char* RES[]={
+    "Mode"
+    "PathList"
+    "Node"
+    "Work"
+    "ErrorCode"  
+};
 mqtt_subscriber::mqtt_subscriber():topic_receive("ACS"+ID+">AMR"+ID),topic_send("AMR"+ID+">ACS"+ID),onetime(false)
 {
     // ros::NodeHandle nh("~");
@@ -195,19 +202,86 @@ void message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *
     Json::Value root;
     Json::Reader reader;
     reader.parse(msg_con,root);
-    if(root.get("Cmd","UTF-8")=="AR")
+    uint32_t* array;
+    while(mos->sequence<18)
     {
-        std::cout <<"aa"<<std::endl;
+        if(strcmp(root.get("Cmd","UTF-8").asCString(),enum_Order[mos->sequence])==0)
+        {
+            break;
+        }
+        mos->sequence++;
     }
-    if(mos->onetime==false)
+
+    switch (mos->sequence)
     {
-        // int array[3]={10,10,10};
-        // int array[4]={5,2,20,20,};
-        int array[27]={1,1,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-        // mos->mqtt_send_EI(array);
-        mos->mqtt_send("GQ",array);
-        mos->onetime=true;
+    case 0://AR
+    //AR에 대한 기능
+    //AR에 대한 array 제작
+    mos->mqtt_send("AR",array);//array 값이 변경되어야함
+        break;
+    case 1://AC
+    mos->mqtt_send("AC",array);
+        break;
+    case 2://AP
+    mos->mqtt_send("AP",array);
+        break;
+    case 3://AJ
+    mos->mqtt_send("AJ",array);
+        break;
+    case 4://SL
+    mos->mqtt_send("SL",array);
+        break;
+    case 5://SP
+    mos->mqtt_send("SP",array);
+        break;
+    case 6://AW
+    mos->mqtt_send("AW",array);
+        break;
+    case 7://AG
+    mos->mqtt_send("AG",array);
+        break;
+    case 8://AD
+    mos->mqtt_send("AD",array);
+        break;
+    case 9://TS
+    mos->mqtt_send("TS",array);
+        break;
+    case 10://TG
+    mos->mqtt_send("TG",array);
+        break;
+    case 11://GS
+    mos->mqtt_send("GS",array);
+        break;
+    case 12://GG
+    mos->mqtt_send("GG",array);
+        break;
+    case 13://GQ
+    mos->mqtt_send("GQ",array);
+        break;
+    case 14://EI
+    mos->mqtt_send("EI",array);
+        break;
+    case 15://GB
+    mos->mqtt_send("GB",array);
+        break;
+    case 16://GD
+    mos->mqtt_send("GD",array);
+        break;
+    case 17://DC
+    mos->mqtt_send("DC",array);
+        break;
     }
+
+    
+    // if(mos->onetime==false)
+    // {
+    //     // int array[3]={10,10,10};
+    //     // int array[4]={5,2,20,20,};
+    //     int array[27]={1,1,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    //     // mos->mqtt_send_EI(array);
+        // mos->mqtt_send("GD",array);
+    //     mos->onetime=true;
+    // }
     
     // std::cout <<root.get("Cmd","UTF-8")<<std::endl;
     mosquitto_publish(mosq,NULL,(mos->topic_send).c_str(),msg->payloadlen,msg,0,0);
@@ -292,6 +366,17 @@ std::string mqtt_subscriber::convert_array_to_json(const char* order,const void*
         {
             root[GD[i]]=(std::to_string(temp_arr_int[i]).c_str());
         }
+    }
+    else
+    {
+        arr_size=5;
+        root["Cmd"]=order;
+        root["Result"]="S";
+        for(int i=0;i<arr_size;i++)
+        {
+            root[RES[i]]=(std::to_string(temp_arr_int[i]).c_str());
+        }
+
     }
     std::string str=writer.write(root);
     return str;

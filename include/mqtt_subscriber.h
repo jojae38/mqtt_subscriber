@@ -53,6 +53,7 @@ void subscribe(struct mosquitto *mosq, void *obj,int mid,int qos_count,const int
 class mqtt_subscriber
 {
     public:
+        int sequence;
         bool onetime;
         std::string topic_send;
         std::string topic_receive;
@@ -68,5 +69,5 @@ class mqtt_subscriber
         int mqtt_init(const char * host,const int port, const std::string ID);
         struct mosquitto *mosq;
         int error;
-        uint8_t Status_Feedback[28];
+        
 };
