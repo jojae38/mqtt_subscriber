@@ -6,7 +6,7 @@ using namespace std;
 void func1(void *mqtt_subscriber_)
 {
     mqtt_subscriber* mqtt_temp=(mqtt_subscriber*)mqtt_subscriber_;
-    mqtt_temp->mqtt_connect("192.168.200.220",1883,"001");
+    mqtt_temp->mqtt_connect("192.168.2.2",1883,"001");
 }
 void func2(void *mqtt_subscriber_)
 {

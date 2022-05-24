@@ -8,10 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-set(mosquitto_INCLUDE_DIRS /usr/include)
+set(mosquitto_INCLUDE_DIRS /snap/mosquitto/704/usr/include)
 set(mosquitto_LIBRARIES 
-/usr/lib/x86_64-linux-gnu/libmosquitto.so.1
-/usr/lib/x86_64-linux-gnu/libmosquitto.so
+/snap/mosquitto/704/usr/lib/libmosquitto.so.1
 )
 
 set(jsoncpp_INCLUDE_DIRS /usr/include)
@@ -41,3 +40,4 @@ target_link_libraries(
   ${jsoncpp_LIBRARIES}
 )
 add_dependencies(mqtt_subscriber ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
