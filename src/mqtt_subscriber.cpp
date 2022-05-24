@@ -4,6 +4,9 @@ const char *host="192.168.50.220";
 const int port = 1883;
 const std::string ID = "001";        
 
+
+
+
 const char* enum_ERROR[]={
     "MOSQ_ERR_AUTH_CONTINUE",
 	"MOSQ_ERR_NO_SUBSCRIBERS",
@@ -111,7 +114,6 @@ const char* GD[]={
     "ErrorCode"
 };
 const char* RES[]={
-    "Mode"
     "PathList"
     "Node"
     "Work"
@@ -119,24 +121,23 @@ const char* RES[]={
 };
 mqtt_subscriber::mqtt_subscriber():topic_receive("ACS"+ID+">AMR"+ID),topic_send("AMR"+ID+">ACS"+ID),onetime(false)
 {
-    // ros::NodeHandle nh("~");
-    // std::string temp="AMR001";
+    // mqtt_connect(host,port,ID);
+    // GQ_=new struct GQ;
+    // EI_=new struct EI;
+    // GB_=new struct GB;
+    // GD_=new struct GD;
+    // *GQ_={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    // *EI_={0,0,0};
+    // *GB_={0,0,0,0,0,0,0,0,0};
+    // *GD_={0,0,0,0};
 
-    // nh.param("Robot_id",Robot_id,temp);
-    mqtt_connect(host,port,ID);
-    // getchar();
-    // while(ros::ok())
-    // {
-    //     //페어링 기능 완료시 다시 작동 x -> 연결 불가시 다시 페어링 모드로 복귀 -> 페어링 모드가 오래 지속될경우 베이스로 복귀
-    //     //연결 불가능 감지 및 행동
-    //     //센서 데이터 및 요청 데이터 publish
-    //     //일반 명령 체크 (queue) 명령이 0개일때는 mutex 작동 1개 이상일시는 mutex 작동 안함 
-    //     //긴급 명령 체크 예) 로봇 정지 및 종료
-    //     //로봇 제어
-    // }
 }
 mqtt_subscriber::~mqtt_subscriber()
 {
+    delete GQ_;
+    delete EI_;
+    delete GB_;
+    delete GD_;
     printf("Exit mqtt_subscriber\n");
     mosquitto_loop_stop(mosq,true);
     mosquitto_disconnect(mosq);
@@ -203,21 +204,23 @@ void message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *
     Json::Reader reader;
     reader.parse(msg_con,root);
     uint32_t* array;
-    while(mos->sequence<18)
+    int sequence=0;
+    while(sequence<18)
     {
-        if(strcmp(root.get("Cmd","UTF-8").asCString(),enum_Order[mos->sequence])==0)
+        if(strcmp(root.get("Cmd","UTF-8").asCString(),enum_Order[sequence])==0)
         {
             break;
         }
-        mos->sequence++;
+        sequence++;
     }
-
-    switch (mos->sequence)
+    switch (sequence)
     {
     case 0://AR
     //AR에 대한 기능
+    mos->order_vec.push_back(msg_con);
     //AR에 대한 array 제작
-    mos->mqtt_send("AR",array);//array 값이 변경되어야함
+    // mos->mqtt_send("AR",array);//array 값이 변경되어야함
+    mosquitto_publish(mosq,NULL,mos->topic_send.c_str(),sizeof(msg_con),msg_con,0,0);
         break;
     case 1://AC
     mos->mqtt_send("AC",array);
@@ -256,36 +259,45 @@ void message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *
     mos->mqtt_send("GG",array);
         break;
     case 13://GQ
-    mos->mqtt_send("GQ",array);
+        if(mos->GQ_!=NULL)
+    {
+        mos->m.lock();
+        mos->mqtt_send("GQ",mos->GQ_);
+        mos->m.unlock();
+    }
         break;
     case 14://EI
-    mos->mqtt_send("EI",array);
+    if(mos->EI_!=NULL)
+    {
+        mos->m.lock();
+        mos->mqtt_send("EI",mos->EI_);
+        mos->m.unlock();
+    }
         break;
     case 15://GB
-    mos->mqtt_send("GB",array);
+        if(mos->GB_!=NULL)
+    {
+        mos->m.lock();
+        mos->mqtt_send("GB",mos->GB_);
+        mos->m.unlock();
+    }
         break;
     case 16://GD
-    mos->mqtt_send("GD",array);
+        if(mos->GD_!=NULL)
+    {
+        mos->m.lock();
+        mos->mqtt_send("GD",mos->GD_);
+        mos->m.unlock();
+    }
         break;
     case 17://DC
     mos->mqtt_send("DC",array);
         break;
     }
+    std::cout <<"sizeof "<<mos->order_vec.size() <<std::endl;
+    // mosquitto_publish(mosq,NULL,(mos->topic_send).c_str(),msg->payloadlen,msg,0,0);
 
     
-    // if(mos->onetime==false)
-    // {
-    //     // int array[3]={10,10,10};
-    //     // int array[4]={5,2,20,20,};
-    //     int array[27]={1,1,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-    //     // mos->mqtt_send_EI(array);
-        // mos->mqtt_send("GD",array);
-    //     mos->onetime=true;
-    // }
-    
-    // std::cout <<root.get("Cmd","UTF-8")<<std::endl;
-    mosquitto_publish(mosq,NULL,(mos->topic_send).c_str(),msg->payloadlen,msg,0,0);
-
     //msg_payload 와 토픽에 따른 행동강령들
 }
 // void subscribe(struct mosquitto *mosq, void *obj,int mid,int qos_count,const int* granted_qos)
@@ -323,7 +335,7 @@ std::string mqtt_subscriber::convert_array_to_json(const char* order,const void*
     Json::Value root;
     Json::StyledWriter writer;
     int arr_size;
-    int* temp_arr_int=(int*)array;
+    uint32_t* temp_arr_int=(uint32_t*)array;
     if(strcmp(order,"EI")==0)
     {
         // arr_size=sizeof(array)/sizeof(temp_arr_int[0]); 왜 array 가 8바이트이지?
@@ -369,7 +381,8 @@ std::string mqtt_subscriber::convert_array_to_json(const char* order,const void*
     }
     else
     {
-        arr_size=5;
+        arr_size=4;
+        root["Mode"]="A";//나중에 수정바람
         root["Cmd"]=order;
         root["Result"]="S";
         for(int i=0;i<arr_size;i++)
@@ -380,4 +393,24 @@ std::string mqtt_subscriber::convert_array_to_json(const char* order,const void*
     }
     std::string str=writer.write(root);
     return str;
+}
+void mqtt_subscriber::mqtt_status_update(const char* order, void *array)
+{
+    if(strcmp(order,"GQ")==0)
+    {   
+        GQ_=(struct GQ*) array;
+    }
+    else if(strcmp(order,"EI")==0)
+    {
+        EI_=(struct EI*) array;
+    }
+    else if(strcmp(order,"GB")==0)
+    {
+        GB_=(struct GB*) array;
+    }
+    else if(strcmp(order,"GD")==0)
+    {
+        GD_=(struct GD*) array;
+    }
+
 }

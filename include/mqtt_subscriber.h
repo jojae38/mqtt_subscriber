@@ -4,6 +4,8 @@
 #include <mosquitto.h>
 #include <jsoncpp/json/json.h>
 #include <queue>
+#include <mutex>
+#include <thread>
 
 #define ANSI_COLOR_RED "\x1b[31m" 
 #define ANSI_COLOR_GREEN "\x1b[32m" 
@@ -13,37 +15,62 @@
 #define ANSI_COLOR_CYAN "\x1b[36m" 
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+struct GQ
+{
+    uint32_t X;
+    uint32_t Y;
+    uint32_t H;
+    uint32_t State;
+    uint32_t ActionID;
+    uint32_t Traffic;
+    uint32_t Mode;
+    uint32_t Clamp;
+    uint32_t Loaded;
+    uint32_t Level;
+    uint32_t CurrentNode;
+    uint32_t NextNode;
+    uint32_t TargetNode;
+    uint32_t Battery;
+    uint32_t Obstacle;
+    uint32_t Lift;
+    uint32_t Tilt;
+    uint32_t SideShift;
+    uint32_t ForkMover;
+    uint32_t PalletFrontX;
+    uint32_t PalletFrontY;
+    uint32_t PalletFrontTheta;
+    uint32_t PalletStackingX;
+    uint32_t PalletStackingY;
+    uint32_t PalletStackingTheta;
+    uint32_t TagId;
+    uint32_t ErrorCode;
+};
+struct EI
+{
+    uint32_t X;
+    uint32_t Y;
+    uint32_t Z;
+};
 
-/*SEND ORDER*/
-//AMRID 차량번호
-enum UpperType {none=0,Lift=1,CV_2=12,CV_3=13};
-//X (mm)
-//Y (mm)
-//degree (0~360)
-enum State {Wait,Run,Load,Unload,Run_com,Load_com,Unload_com,Traffic};
-enum Charge_Status {unCharge,Charge};
-enum Action_ID {Lift_on=1,Lift_off};
-enum Mode {Manual,Auto};
-//Loaded_1
-//Loaded_2
-//Loaded_3
-//Current_Node
-//Next_Node
-//Target_Node
-enum Obstacle {Idle,Warning};
-//Speed
-//Map_match_percent
-//Error_code1
-//Error_code2
-//Error_code3
-//Error_code4
-//Error_code5
-//Battery_Volt
-//Battery_Temp
-//Battery_Left
-enum Manual_Complete {delete_order=1};
-//Protocal_ver
-
+struct GB
+{
+    uint32_t BCellVolt;
+    uint32_t BPackVolt;
+    uint32_t BPackCurrent;
+    uint32_t BChargeVolt;
+    uint32_t BTemperature;
+    uint32_t Battery;
+    uint32_t BError;
+    uint32_t BWarning;
+    uint32_t ErrorCode;
+};
+struct GD
+{
+    uint32_t TMapVersion;
+    uint32_t GMapVersion;
+    uint32_t FWVersion;
+    uint32_t ErrorCode;
+};
 /*RECEIVE ORDER*/
 
 void connect(struct mosquitto *mosq, void *obj, int rc);
@@ -53,6 +80,12 @@ void subscribe(struct mosquitto *mosq, void *obj,int mid,int qos_count,const int
 class mqtt_subscriber
 {
     public:
+        std::vector<char*> order_vec;
+        std::mutex m;
+        struct GQ* GQ_;
+        struct EI* EI_;
+        struct GB* GB_;
+        struct GD* GD_;
         int sequence;
         bool onetime;
         std::string topic_send;
@@ -61,9 +94,12 @@ class mqtt_subscriber
         void mqtt_send(const char* order,const void* array);
         void mqtt_receive_request();
         void publish();
+        void mqtt_status_update(const char* order, void* array);
+        
         mqtt_subscriber();
         ~mqtt_subscriber();
     private:
+
         std::string convert_array_to_json(const char* order,const void* array);
         void Print_Error(int Error);
         int mqtt_init(const char * host,const int port, const std::string ID);
